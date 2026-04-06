@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yahtzee</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inconsolata:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+html { color-scheme: dark; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #0c0c0e !important;
+  color: #f0ede8 !important;
+  font-family: 'Inconsolata', monospace;
+  font-size: 14px;
+  min-height: 100vh;
+  -webkit-text-fill-color: #f0ede8;
+}
+
+/* ══════════════════════════════
+SETUP SCREEN
+══════════════════════════════ */
+#screen-setup {
+display: flex; flex-direction: column; align-items: center;
+justify-content: center; min-height: 100vh; padding: 32px 16px;
+}
+.logo { font-family:‘Bebas Neue’,sans-serif; font-size:86px; color:#f0c040; letter-spacing:5px; line-height:1; }
+.logo-sub { font-size:10px; letter-spacing:.22em; color:#4a4a56; text-transform:uppercase; margin-bottom:36px; }
+.setup-card { background:#18181c; border:1px solid #2a2a32; border-radius:6px; padding:28px; width:100%; max-width:420px; }
+.lbl { font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:#5a5a66; margin-bottom:10px; display:block; }
+.count-row { display:flex; gap:6px; margin-bottom:24px; }
+.cnt-btn { flex:1; height:44px; background:#111114; border:1px solid #2a2a32; color:#5a5a66; font-family:‘Bebas Neue’,sans-serif; font-size:22px; cursor:pointer; border-radius:4px; transition:all .12s; -webkit-text-fill-color:#5a5a66; }
+.cnt-btn:hover { border-color:#4a4a56; color:#f0ede8; -webkit-text-fill-color:#f0ede8; }
+.cnt-btn.on { background:#f0c040; border-color:#f0c040; color:#000 !important; -webkit-text-fill-color:#000 !important; }
+#name-fields { display:flex; flex-direction:column; gap:8px; margin-bottom:24px; }
+.nf-row { display:flex; align-items:center; gap:10px; }
+.p-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.n-inp { flex:1; height:42px; background:#111114 !important; border:1px solid #2a2a32; border-radius:4px; color:#f0ede8 !important; -webkit-text-fill-color:#f0ede8 !important; font-family:‘Inconsolata’,monospace; font-size:15px; font-weight:700; padding:0 12px; outline:none; transition:border-color .12s; }
+.n-inp:focus { border-color:#f0c040; }
+.n-inp::placeholder { color:#3a3a44 !important; -webkit-text-fill-color:#3a3a44 !important; font-weight:400; }
+.btn-go { width:100%; height:50px; background:#f0c040; border:none; color:#000 !important; -webkit-text-fill-color:#000 !important; font-family:‘Bebas Neue’,sans-serif; font-size:20px; letter-spacing:2px; cursor:pointer; border-radius:4px; transition:opacity .12s; }
+.btn-go:hover { opacity:.85; }
+.btn-go:disabled { opacity:.28; cursor:not-allowed; }
+
+/* ══════════════════════════════
+GAME SCREEN — two-column layout
+══════════════════════════════ */
+#screen-game { display:none; min-height:100vh; }
+.game-layout { display:grid; grid-template-columns:1fr; gap:0; }
+
+/* ── LEFT PANEL: dice + turn ── */
+#panel-dice {
+background:#111114;
+border-bottom:1px solid #2a2a32;
+padding:20px 16px;
+}
+
+/* ── RIGHT PANEL: scorecard ── */
+#panel-score { padding:16px 14px 60px; overflow-x:auto; }
+
+/* Desktop: fixed left column, scrollable right */
+@media(min-width:700px) {
+.game-layout { grid-template-columns:268px 1fr; min-height:100vh; }
+#panel-dice {
+position:fixed;
+top:0; left:0;
+width:268px;
+height:100vh;
+overflow-y:auto;
+border-right:1px solid #2a2a32;
+border-bottom:none;
+}
+#panel-score {
+margin-left:268px;
+min-height:100vh;
+}
+}
+
+/* ── Game header ── */
+.g-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:8px; }
+.g-logo { font-family:‘Bebas Neue’,sans-serif; font-size:38px; color:#f0c040; letter-spacing:2px; line-height:1; }
+.btn-sm { background:none; border:1px solid #2a2a32; color:#5a5a66; -webkit-text-fill-color:#5a5a66; font-family:‘Inconsolata’,monospace; font-size:10px; letter-spacing:.1em; text-transform:uppercase; padding:5px 10px; cursor:pointer; border-radius:4px; transition:all .12s; }
+.btn-sm:hover { border-color:#f87171; color:#f87171; -webkit-text-fill-color:#f87171; }
+
+/* ── Current player indicator ── */
+.turn-bar { background:#18181c; border:1px solid #2a2a32; border-radius:6px; padding:12px 14px; margin-bottom:14px; }
+.turn-label { font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:#5a5a66; margin-bottom:4px; }
+.turn-name { font-family:‘Bebas Neue’,sans-serif; font-size:28px; letter-spacing:1px; line-height:1; }
+.turn-rolls { font-size:11px; color:#5a5a66; margin-top:4px; }
+.rolls-pip { display:inline-block; width:8px; height:8px; border-radius:50%; background:#2a2a32; margin-right:3px; }
+.rolls-pip.used { background:#f0c040; }
+
+/* ── Dice area ── */
+.dice-row { display:flex; gap:10px; justify-content:center; margin:14px 0; flex-wrap:wrap; }
+.die {
+width:58px; height:58px; background:#26262e; border:2px solid #4a4a58;
+border-radius:10px; cursor:pointer; transition:all .15s;
+display:flex; align-items:center; justify-content:center;
+font-size:34px; user-select:none; position:relative;
+box-shadow: 0 2px 8px #00000055;
+line-height:1;
+}
+.die:hover { border-color:#7a7a88; background:#2e2e38; }
+.die.held { background:#1a2e10; border-color:#4ade80; box-shadow:0 0 0 2px #4ade8040, 0 2px 8px #00000055; }
+.die.held::after { content:‘🔒’; position:absolute; bottom:2px; right:3px; font-size:9px; line-height:1; }
+.die.rolling { animation: shake .25s ease; }
+@keyframes shake {
+0%,100% { transform:rotate(0deg) scale(1); }
+20%      { transform:rotate(-8deg) scale(1.05); }
+60%      { transform:rotate(6deg) scale(1.05); }
+}
+.die.disabled { opacity:.35; cursor:default; pointer-events:none; }
+
+.btn-roll {
+width:100%; height:52px; background:#f0c040; border:none;
+color:#000 !important; -webkit-text-fill-color:#000 !important;
+font-family:‘Bebas Neue’,sans-serif; font-size:22px; letter-spacing:2px;
+cursor:pointer; border-radius:5px; transition:opacity .12s;
+margin-bottom:10px;
+}
+.btn-roll:hover { opacity:.85; }
+.btn-roll:disabled { opacity:.28; cursor:not-allowed; }
+.roll-hint { font-size:10px; color:#4a4a56; text-align:center; margin-bottom:12px; letter-spacing:.05em; }
+
+/* ── Score suggestions panel ── */
+.suggest-title { font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:#5a5a66; margin-bottom:8px; }
+.suggest-list { display:flex; flex-direction:column; gap:4px; }
+.suggest-btn {
+display:flex; align-items:center; justify-content:space-between;
+background:#18181c; border:1px solid #2a2a32; border-radius:4px;
+padding:7px 10px; cursor:pointer; transition:all .12s; width:100%;
+font-family:‘Inconsolata’,monospace; font-size:12px; text-align:left;
+color:#c0bdb8 !important; -webkit-text-fill-color:#c0bdb8 !important;
+}
+.suggest-btn:hover { border-color:#f0c040; background:#1e1c10; }
+.suggest-btn.best { border-color:#4ade8066; background:#1a2810; }
+.suggest-btn.zero { opacity:.5; }
+.suggest-btn .s-name { flex:1; }
+.suggest-btn .s-pts { font-family:‘Bebas Neue’,sans-serif; font-size:18px; color:#f0ede8 !important; -webkit-text-fill-color:#f0ede8 !important; }
+.suggest-btn.best .s-pts { color:#4ade80 !important; -webkit-text-fill-color:#4ade80 !important; }
+.suggest-btn .s-badge { font-size:9px; background:#4ade8022; color:#4ade80 !important; -webkit-text-fill-color:#4ade80 !important; border:1px solid #4ade8044; border-radius:3px; padding:1px 5px; margin-left:6px; }
+.no-roll-msg { font-size:11px; color:#4a4a56; text-align:center; padding:20px 0; }
+
+/* ══════════════════════════════
+SCORECARD TABLE
+══════════════════════════════ */
+.score-title { font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:#5a5a66; margin-bottom:10px; }
+.tbl-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+table { width:100%; border-collapse:collapse; min-width:320px; }
+th,td { padding:0; }
+
+.ph-row th { padding:6px 3px 14px; text-align:center; font-family:‘Bebas Neue’,sans-serif; font-size:20px; letter-spacing:1px; }
+.ph-row th.lc { width:128px; min-width:110px; text-align:left; font-size:13px; color:#5a5a66 !important; -webkit-text-fill-color:#5a5a66 !important; font-family:‘Inconsolata’,monospace; letter-spacing:0; }
+
+.sec-row td { background:#1e1e24; font-size:9px; letter-spacing:.2em; text-transform:uppercase; color:#5a5a66; padding:5px 6px; font-weight:700; }
+
+.sr td { height:40px; border-bottom:1px solid #1a1a1e; vertical-align:middle; }
+.sr:hover td { background:#141418; }
+.sr td.lc { color:#6a6a78; font-size:11px; text-transform:uppercase; letter-spacing:.04em; padding-right:6px; }
+
+/* Cell container */
+.cell {
+margin:3px; border-radius:4px; background:#111114;
+border:1.5px solid #2a2a32; transition:border-color .12s, background .12s;
+position:relative; height:34px; display:flex; align-items:center; justify-content:center;
+}
+.cell.filled { background:#1a2210; border-color:#3a4a28; }
+.cell.filled::after { content:‘✓’; position:absolute; top:1px; right:3px; font-size:8px; color:#4ade80; line-height:1; }
+.cell.current-player { border-color:#f0c04066; background:#1e1c10; }
+.cell.scored-this-turn { background:#1a2e10; border-color:#4ade80; animation: scored .4s ease; }
+@keyframes scored { 0% { transform:scale(1.1); } 100% { transform:scale(1); } }
+
+/* cell text (not an input, just display) */
+.cell-val {
+font-family:‘Inconsolata’,monospace; font-size:17px; font-weight:700;
+color:#f0ede8 !important; -webkit-text-fill-color:#f0ede8 !important;
+text-align:center; width:100%;
+}
+.cell.filled .cell-val { color:#d8e8c8 !important; -webkit-text-fill-color:#d8e8c8 !important; }
+.cell-empty .cell-val { color:#2e2e38 !important; -webkit-text-fill-color:#2e2e38 !important; font-size:20px; }
+
+/* Sub / bonus / total */
+.sub-row td { height:32px; border-top:1px solid #2a2a32; border-bottom:1px solid #2a2a32; vertical-align:middle; text-align:center; font-size:13px; color:#6a6a78; }
+.sub-row td.lc { font-size:10px; text-transform:uppercase; letter-spacing:.09em; }
+.sub-row .v { font-weight:700; font-size:15px; color:#f0ede8 !important; -webkit-text-fill-color:#f0ede8 !important; }
+
+.bon-row td { height:28px; border-bottom:1px solid #1a1a1e; vertical-align:middle; text-align:center; font-size:11px; color:#6a6a78; }
+.bon-row td.lc { font-size:10px; text-transform:uppercase; letter-spacing:.08em; }
+.bon-row .v { font-size:13px; font-weight:600; color:#6a6a78 !important; -webkit-text-fill-color:#6a6a78 !important; }
+.bon-row .yes { color:#4ade80 !important; -webkit-text-fill-color:#4ade80 !important; }
+.bon-row .near { color:#f0c040 !important; -webkit-text-fill-color:#f0c040 !important; }
+
+.tot-row td { height:54px; border-top:2px solid #2a2a32; vertical-align:middle; text-align:center; font-family:‘Bebas Neue’,sans-serif; font-size:34px; letter-spacing:1px; }
+.tot-row td.lc { font-size:16px; color:#5a5a66 !important; -webkit-text-fill-color:#5a5a66 !important; }
+
+/* ── Winner ── */
+#winner-bar { display:none; margin-top:24px; padding:28px; border:1px solid #3a3a44; background:#18181c; border-radius:6px; text-align:center; animation:pop .35s ease; }
+@keyframes pop { from{opacity:0;transform:scale(.95) translateY(10px)} to{opacity:1;transform:none} }
+#winner-bar .wl { font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:#5a5a66; margin-bottom:4px; }
+#winner-bar .wn { font-family:‘Bebas Neue’,sans-serif; font-size:60px; letter-spacing:2px; }
+#winner-bar .ws { font-size:12px; color:#5a5a66; margin-top:4px; }
+
+::-webkit-scrollbar { width:4px; height:4px; }
+::-webkit-scrollbar-track { background:#0c0c0e; }
+::-webkit-scrollbar-thumb { background:#3a3a44; border-radius:2px; }
+</style>
+
+</head>
+<body>
+
+<!-- ══ SETUP ══ -->
+
+<div id="screen-setup">
+  <div class="logo">YAHTZEE</div>
+  <div class="logo-sub">Score Tracker</div>
+  <div class="setup-card">
+    <span class="lbl">Numero di giocatori</span>
+    <div class="count-row" id="countRow"></div>
+    <span class="lbl">Nomi</span>
+    <div id="name-fields"></div>
+    <button class="btn-go" id="btnGo" onclick="startGame()" disabled>Inizia partita →</button>
+  </div>
+</div>
+
+<!-- ══ GAME ══ -->
+
+<div id="screen-game">
+  <div class="game-layout">
+
+```
+<!-- LEFT: dice panel -->
+<div id="panel-dice">
+  <div class="g-header">
+    <div class="g-logo">YAHTZEE</div>
+    <button class="btn-sm" onclick="newGame()">↺ Nuova</button>
+  </div>
+
+  <!-- Turn indicator -->
+  <div class="turn-bar">
+    <div class="turn-label">Turno di</div>
+    <div class="turn-name" id="turn-name">—</div>
+    <div class="turn-rolls" id="turn-rolls-ui"></div>
+  </div>
+
+  <!-- Dice -->
+  <div class="dice-row" id="dice-row">
+    <!-- built by JS -->
+  </div>
+
+  <button class="btn-roll" id="btn-roll" onclick="rollDice()">🎲 Lancia</button>
+  <div class="roll-hint" id="roll-hint">Clicca un dado per tenerlo</div>
+
+  <!-- Suggestions -->
+  <div id="suggest-area">
+    <div class="no-roll-msg">Lancia i dadi per vedere i punteggi disponibili</div>
+  </div>
+</div>
+
+<!-- RIGHT: scorecard -->
+<div id="panel-score">
+  <div class="score-title">Segnapunti</div>
+  <div class="tbl-wrap"><table id="tbl"></table></div>
+  <div id="winner-bar">
+    <div class="wl">🎲 Vincitore</div>
+    <div class="wn" id="w-name">—</div>
+    <div class="ws" id="w-score"></div>
+  </div>
+</div>
+```
+
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════
+   CONSTANTS & DATA
+══════════════════════════════════ */
+const PALETTE = ['#f0c040','#f87171','#4ade80','#60a5fa','#c084fc','#fb923c','#f472b6','#34d399'];
+
+const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+
+const UPPER = [
+  {id:'aces',   label:'Asso ×1',    face:1},
+  {id:'twos',   label:'Due ×2',     face:2},
+  {id:'threes', label:'Tre ×3',     face:3},
+  {id:'fours',  label:'Quattro ×4', face:4},
+  {id:'fives',  label:'Cinque ×5',  face:5},
+  {id:'sixes',  label:'Sei ×6',     face:6},
+];
+const LOWER = [
+  {id:'tris',    label:'3 di un tipo'},
+  {id:'poker',   label:'4 di un tipo'},
+  {id:'full',    label:'Full House',   fixed:25},
+  {id:'sm_str',  label:'Scala Piccola',fixed:30},
+  {id:'lg_str',  label:'Scala Grande', fixed:40},
+  {id:'yahtzee', label:'Yahtzee!',     fixed:50},
+  {id:'chance',  label:'Chance'},
+];
+const ALL = [...UPPER, ...LOWER];
+
+/* ══════════════════════════════════
+   STATE
+══════════════════════════════════ */
+let players = [];
+let n = 4;
+let scores  = {};   // scores[playerName][catId] = number | null
+let dice    = [1,1,1,1,1];  // current face values
+let held    = [false,false,false,false,false];
+let rollsLeft = 3;
+let currentPlayerIdx = 0;
+let hasRolled = false;
+let roundsLeft = 0;   // total rounds remaining
+
+/* ══════════════════════════════════
+   SETUP
+══════════════════════════════════ */
+function buildSetup() {
+  const cr = document.getElementById('countRow');
+  cr.innerHTML = '';
+  for (let i = 2; i <= 8; i++) {
+    const b = document.createElement('button');
+    b.className = 'cnt-btn' + (i===n?' on':'');
+    b.textContent = i;
+    b.onclick = () => { n = i; buildSetup(); };
+    cr.appendChild(b);
+  }
+  buildFields();
+}
+
+function buildFields() {
+  const nf = document.getElementById('name-fields');
+  const prev = Array.from(nf.querySelectorAll('.n-inp')).map(x=>x.value);
+  nf.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const row = document.createElement('div'); row.className = 'nf-row';
+    const dot = document.createElement('div'); dot.className = 'p-dot'; dot.style.background = PALETTE[i];
+    const inp = document.createElement('input');
+    inp.className = 'n-inp'; inp.type = 'text'; inp.maxLength = 12;
+    inp.placeholder = `Giocatore ${i+1}`;
+    inp.value = prev[i] || '';
+    inp.oninput = validateGo;
+    row.appendChild(dot); row.appendChild(inp); nf.appendChild(row);
+  }
+  validateGo();
+}
+
+function validateGo() {
+  const vals = Array.from(document.querySelectorAll('.n-inp')).map(x=>x.value.trim());
+  document.getElementById('btnGo').disabled =
+    !vals.every(v=>v.length>0) || new Set(vals).size !== vals.length;
+}
+
+function startGame() {
+  players = Array.from(document.querySelectorAll('.n-inp')).map((inp,i)=>({
+    name: inp.value.trim(), color: PALETTE[i]
+  }));
+  scores = {};
+  players.forEach(p => { scores[p.name] = {}; ALL.forEach(c => scores[p.name][c.id] = null); });
+  roundsLeft = ALL.length * players.length;
+  currentPlayerIdx = 0;
+  resetTurn();
+
+  document.getElementById('screen-setup').style.display = 'none';
+  document.getElementById('screen-game').style.display  = 'block';
+  buildTable();
+  updateTurnUI();
+  updateTotals();
+}
+
+function newGame() {
+  if (!confirm('Tornare alla schermata iniziale?')) return;
+  document.getElementById('screen-setup').style.display = 'flex';
+  document.getElementById('screen-game').style.display  = 'none';
+  document.getElementById('winner-bar').style.display   = 'none';
+  buildSetup();
+}
+
+/* ══════════════════════════════════
+   DICE LOGIC
+══════════════════════════════════ */
+function resetTurn() {
+  dice    = [1,1,1,1,1];
+  held    = [false,false,false,false,false];
+  rollsLeft = 3;
+  hasRolled = false;
+}
+
+function rollDice() {
+  if (rollsLeft <= 0) return;
+  hasRolled = true;
+
+  // animate + randomize unheld dice
+  const dieDivs = document.querySelectorAll('.die');
+  dieDivs.forEach((d,i) => {
+    if (!held[i]) {
+      d.classList.add('rolling');
+      let ticks = 0;
+      const iv = setInterval(() => {
+        dice[i] = Math.ceil(Math.random() * 6);
+        d.textContent = DICE_FACES[dice[i]-1];
+        if (++ticks > 5) {
+          clearInterval(iv);
+          d.classList.remove('rolling');
+          d.textContent = DICE_FACES[dice[i]-1];
+          renderDice();
+          updateSuggestions();
+        }
+      }, 40);
+    }
+  });
+
+  rollsLeft--;
+  updateRollBtn();
+  updateRollsUI();
+}
+
+function toggleHold(i) {
+  if (!hasRolled) return;
+  held[i] = !held[i];
+  renderDice();
+}
+
+function renderDice() {
+  const row = document.getElementById('dice-row');
+  row.innerHTML = '';
+  for (let i = 0; i < 5; i++) {
+    const d = document.createElement('div');
+    d.className = 'die' + (held[i]?' held':'') + (!hasRolled?' disabled':'');
+    d.textContent = DICE_FACES[dice[i]-1];
+    d.onclick = () => toggleHold(i);
+    d.title = held[i] ? 'Tenuto — clicca per sbloccare' : 'Clicca per tenere';
+    row.appendChild(d);
+  }
+}
+
+function updateRollBtn() {
+  const btn = document.getElementById('btn-roll');
+  btn.disabled = rollsLeft <= 0;
+  if (rollsLeft === 3) btn.textContent = '🎲 Lancia';
+  else if (rollsLeft === 2) btn.textContent = '🎲 Rilancia (2 rimasti)';
+  else if (rollsLeft === 1) btn.textContent = '🎲 Rilancia (ultimo)';
+  else btn.textContent = '— Lanci esauriti —';
+}
+
+function updateRollsUI() {
+  const el = document.getElementById('turn-rolls-ui');
+  let html = '<span style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#5a5a66;">Lanci: </span>';
+  for (let i = 0; i < 3; i++) {
+    const used = i >= rollsLeft;
+    html += `<span class="rolls-pip${used?' used':''}"></span>`;
+  }
+  el.innerHTML = html;
+}
+
+/* ══════════════════════════════════
+   SCORE CALCULATION
+══════════════════════════════════ */
+function counts() {
+  const c = Array(7).fill(0);
+  dice.forEach(d => c[d]++);
+  return c;
+}
+
+function sumAll() { return dice.reduce((a,b)=>a+b,0); }
+
+function calcScore(catId) {
+  const c = counts();
+  const s = sumAll();
+  switch(catId) {
+    case 'aces':   return c[1]*1;
+    case 'twos':   return c[2]*2;
+    case 'threes': return c[3]*3;
+    case 'fours':  return c[4]*4;
+    case 'fives':  return c[5]*5;
+    case 'sixes':  return c[6]*6;
+    case 'tris':   return c.some(x=>x>=3) ? s : 0;
+    case 'poker':  return c.some(x=>x>=4) ? s : 0;
+    case 'full':   return (c.some(x=>x===3) && c.some(x=>x===2)) ? 25 : 0;
+    case 'sm_str': {
+      const u = [...new Set(dice)].sort();
+      const run = (arr, len) => { for(let i=0;i<=arr.length-len;i++){let ok=true;for(let j=1;j<len;j++){if(arr[i+j]!==arr[i+j-1]+1){ok=false;break;}}if(ok)return true;}return false;};
+      return run(u,4) ? 30 : 0;
+    }
+    case 'lg_str': {
+      const u = [...new Set(dice)].sort();
+      return (u.length===5 && u[4]-u[0]===4) ? 40 : 0;
+    }
+    case 'yahtzee': return c.some(x=>x===5) ? 50 : 0;
+    case 'chance':  return s;
+    default: return 0;
+  }
+}
+
+/* ══════════════════════════════════
+   SUGGESTIONS PANEL
+══════════════════════════════════ */
+function updateSuggestions() {
+  if (!hasRolled) {
+    document.getElementById('suggest-area').innerHTML = '<div class="no-roll-msg">Lancia i dadi per vedere i punteggi disponibili</div>';
+    return;
+  }
+
+  const cp = players[currentPlayerIdx];
+  const available = ALL.filter(c => scores[cp.name][c.id] === null);
+
+  if (available.length === 0) {
+    document.getElementById('suggest-area').innerHTML = '<div class="no-roll-msg">Hai compilato tutte le caselle!</div>';
+    return;
+  }
+
+  const scored = available.map(c => ({ cat:c, pts: calcScore(c.id) }));
+  const best = Math.max(...scored.map(x=>x.pts));
+
+  let html = '<div class="suggest-title">Seleziona punteggio da assegnare</div><div class="suggest-list">';
+  scored.sort((a,b) => b.pts - a.pts);
+  scored.forEach(({cat,pts}) => {
+    const isBest = pts === best && pts > 0;
+    const isZero = pts === 0;
+    html += `<button class="suggest-btn${isBest?' best':''}${isZero?' zero':''}" onclick="assignScore('${cat.id}',${pts})">
+      <span class="s-name">${cat.label}</span>
+      ${isBest ? '<span class="s-badge">top</span>' : ''}
+      <span class="s-pts">${pts}</span>
+    </button>`;
+  });
+  html += '</div>';
+  document.getElementById('suggest-area').innerHTML = html;
+}
+
+function assignScore(catId, pts) {
+  const cp = players[currentPlayerIdx];
+  if (scores[cp.name][catId] !== null) return;
+
+  scores[cp.name][catId] = pts;
+
+  // Update cell in table
+  const cell = document.getElementById(`cell_${cp.name}_${catId}`);
+  if (cell) {
+    cell.className = 'cell filled scored-this-turn';
+    cell.innerHTML = `<span class="cell-val">${pts}</span>`;
+  }
+
+  updateTotals();
+  nextTurn();
+}
+
+/* ══════════════════════════════════
+   TURN MANAGEMENT
+══════════════════════════════════ */
+function nextTurn() {
+  roundsLeft--;
+
+  // Move to next player
+  currentPlayerIdx = (currentPlayerIdx + 1) % players.length;
+
+  resetTurn();
+  renderDice();
+  updateRollBtn();
+  updateRollsUI();
+  updateTurnUI();
+  updateSuggestions();
+  highlightCurrentPlayer();
+
+  if (roundsLeft <= 0) {
+    showWinner();
+  }
+}
+
+function updateTurnUI() {
+  const cp = players[currentPlayerIdx];
+  const nameEl = document.getElementById('turn-name');
+  nameEl.textContent = cp.name.toUpperCase();
+  nameEl.style.color = cp.color;
+  nameEl.style.webkitTextFillColor = cp.color;
+  updateRollsUI();
+}
+
+function highlightCurrentPlayer() {
+  // Remove current-player highlight from all cells
+  document.querySelectorAll('.cell.current-player').forEach(c => c.classList.remove('current-player'));
+  // Remove scored-this-turn flash
+  document.querySelectorAll('.cell.scored-this-turn').forEach(c => c.classList.remove('scored-this-turn'));
+
+  // Add highlight to current player's empty cells
+  const cp = players[currentPlayerIdx];
+  ALL.forEach(cat => {
+    if (scores[cp.name][cat.id] === null) {
+      const cell = document.getElementById(`cell_${cp.name}_${cat.id}`);
+      if (cell) cell.classList.add('current-player');
+    }
+  });
+}
+
+/* ══════════════════════════════════
+   SCORECARD TABLE
+══════════════════════════════════ */
+function buildTable() {
+  const t = document.getElementById('tbl');
+  t.innerHTML = '';
+
+  // Header row
+  const hr = document.createElement('tr'); hr.className = 'ph-row';
+  const th0 = document.createElement('th'); th0.className = 'lc'; th0.textContent = 'Categoria';
+  hr.appendChild(th0);
+  players.forEach(p => {
+    const th = document.createElement('th');
+    th.textContent = p.name.toUpperCase();
+    th.style.color = p.color;
+    th.style.webkitTextFillColor = p.color;
+    hr.appendChild(th);
+  });
+  t.appendChild(hr);
+
+  addSec(t, '◎ SEZIONE ALTA');
+  UPPER.forEach(c => addCatRow(t, c));
+  addSubRow(t);
+  addBonRow(t);
+  addSec(t, '◎ SEZIONE BASSA');
+  LOWER.forEach(c => addCatRow(t, c));
+  addTotRow(t);
+
+  highlightCurrentPlayer();
+}
+
+function addSec(t, label) {
+  const tr = document.createElement('tr'); tr.className = 'sec-row';
+  const td = document.createElement('td'); td.colSpan = 1+players.length; td.textContent = label;
+  tr.appendChild(td); t.appendChild(tr);
+}
+
+function addCatRow(t, cat) {
+  const tr = document.createElement('tr'); tr.className = 'sr';
+  const tl = document.createElement('td'); tl.className = 'lc'; tl.textContent = cat.label;
+  tr.appendChild(tl);
+
+  players.forEach(p => {
+    const td = document.createElement('td');
+    const cell = document.createElement('div');
+    cell.id = `cell_${p.name}_${cat.id}`;
+    const val = scores[p.name][cat.id];
+
+    if (val !== null) {
+      cell.className = 'cell filled';
+      cell.innerHTML = `<span class="cell-val">${val}</span>`;
+    } else {
+      cell.className = 'cell cell-empty';
+      cell.innerHTML = `<span class="cell-val">·</span>`;
+    }
+    td.appendChild(cell); tr.appendChild(td);
+  });
+  t.appendChild(tr);
+}
+
+function addStatRow(t, cls, lblTxt, idPfx) {
+  const tr = document.createElement('tr'); tr.className = cls;
+  const tl = document.createElement('td'); tl.className = 'lc'; tl.textContent = lblTxt;
+  tr.appendChild(tl);
+  players.forEach(p => {
+    const td = document.createElement('td');
+    td.className = 'v'; td.id = `${idPfx}_${p.name}`; td.textContent = '0';
+    tr.appendChild(td);
+  });
+  t.appendChild(tr);
+}
+
+function addSubRow(t) { addStatRow(t,'sub-row','Subtotale','sub'); }
+function addBonRow(t) { addStatRow(t,'bon-row','Bonus +35','bon'); }
+function addTotRow(t) { addStatRow(t,'tot-row','TOTALE','tot'); }
+
+/* ══════════════════════════════════
+   TOTALS
+══════════════════════════════════ */
+const uSum = p => UPPER.reduce((s,c)=>s+(scores[p.name][c.id]||0),0);
+const lSum = p => LOWER.reduce((s,c)=>s+(scores[p.name][c.id]||0),0);
+const bon  = p => uSum(p)>=63?35:0;
+const gTot = p => uSum(p)+bon(p)+lSum(p);
+
+function updateTotals() {
+  players.forEach(p => {
+    const us=uSum(p), b=bon(p), gt=gTot(p), missing=63-us;
+
+    const subEl=document.getElementById(`sub_${p.name}`);
+    if(subEl){ subEl.textContent=us; subEl.style.webkitTextFillColor='#f0ede8'; }
+
+    const bonEl=document.getElementById(`bon_${p.name}`);
+    if(bonEl){
+      if(b>0){ bonEl.textContent='+35 ✓'; bonEl.className='v yes'; }
+      else   { bonEl.textContent=`mancano ${missing}`; bonEl.className=missing<=10?'v near':'v'; }
+    }
+
+    const totEl=document.getElementById(`tot_${p.name}`);
+    if(totEl){ totEl.textContent=gt; totEl.style.color=p.color; totEl.style.webkitTextFillColor=p.color; }
+  });
+}
+
+/* ══════════════════════════════════
+   WINNER
+══════════════════════════════════ */
+function showWinner() {
+  const best = players.reduce((a,b)=>gTot(a)>gTot(b)?a:b);
+  const wb = document.getElementById('winner-bar');
+  const wn = document.getElementById('w-name');
+  wn.textContent = best.name.toUpperCase();
+  wn.style.color = best.color;
+  wn.style.webkitTextFillColor = best.color;
+  document.getElementById('w-score').textContent = `${gTot(best)} punti`;
+  wb.style.display = 'block';
+  wb.scrollIntoView({behavior:'smooth',block:'center'});
+
+  // disable dice panel
+  document.getElementById('btn-roll').disabled = true;
+  document.getElementById('suggest-area').innerHTML = '<div class="no-roll-msg" style="color:#f0c040">Partita terminata! 🎲</div>';
+}
+
+/* ══════════════════════════════════
+   INIT
+══════════════════════════════════ */
+buildSetup();
+renderDice();
+updateRollBtn();
+</script>
+
+</body>
+</html>
