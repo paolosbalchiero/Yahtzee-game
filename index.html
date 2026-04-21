@@ -232,19 +232,19 @@ cursor:pointer; border-radius:5px; transition:opacity .12s, background .2s;
 .sug-list { display:flex; flex-direction:column; gap:4px; }
 .sug-btn {
 display:flex; align-items:center; justify-content:space-between;
-background:#18181c; border:1px solid #2a2a32; border-radius:4px;
-padding:7px 9px; cursor:pointer; width:100%;
-font-family:‘Inconsolata’,monospace; font-size:11px;
-color:#b0adb8!important; -webkit-text-fill-color:#b0adb8!important;
-transition:all .12s; text-align:left;
+border-radius:4px; padding:7px 9px; cursor:pointer; width:100%;
+font-family:‘Inconsolata’,monospace; font-size:11px; border:1.5px solid transparent;
+transition:opacity .12s; text-align:left;
 }
-.sug-btn:hover { border-color:#f0c040; background:#1c1a0e; }
-.sug-btn.best { border-color:#4ade8055; background:#1a2810; }
-.sug-btn.zero-s { opacity:.42; }
+.sug-btn:hover { opacity:.78; }
+.sug-btn.sg { background:#1a3010; border-color:#4ade8066; color:#a0e890!important; -webkit-text-fill-color:#a0e890!important; }
+.sug-btn.sg .sug-pts { color:#4ade80!important; -webkit-text-fill-color:#4ade80!important; }
+.sug-btn.sy { background:#1e1c0a; border-color:#f0c04055; color:#c8be80!important; -webkit-text-fill-color:#c8be80!important; }
+.sug-btn.sy .sug-pts { color:#f0c040!important; -webkit-text-fill-color:#f0c040!important; }
+.sug-btn.sr { background:#2a1212; border-color:#f8717155; color:#e09090!important; -webkit-text-fill-color:#e09090!important; opacity:.7; }
+.sug-btn.sr .sug-pts { color:#f87171!important; -webkit-text-fill-color:#f87171!important; }
 .sug-name { flex:1; }
-.sug-pts { font-family:‘Bebas Neue’,sans-serif; font-size:20px; color:#f0ede8!important; -webkit-text-fill-color:#f0ede8!important; }
-.sug-btn.best .sug-pts { color:#4ade80!important; -webkit-text-fill-color:#4ade80!important; }
-.sug-badge { font-size:8px; background:#4ade8018; color:#4ade80!important; -webkit-text-fill-color:#4ade80!important; border:1px solid #4ade8044; border-radius:3px; padding:1px 5px; margin-left:4px; }
+.sug-pts { font-family:‘Bebas Neue’,sans-serif; font-size:20px; }
 .sug-empty { font-size:11px; color:#4a4a56; text-align:center; padding:16px 0; }
 
 /* ══════════════════════════════════════
@@ -313,10 +313,26 @@ font-family:‘Bebas Neue’,sans-serif; font-size:18px; letter-spacing:.5px;
 .cell-scored.z { background:#2a1a1a; border-color:#4a2828; color:#f87171!important; -webkit-text-fill-color:#f87171!important; }
 .cell-scored.z::after { content:‘✕’; color:#f87171; }
 
-/* available for current player */
-.cell-avail { background:#1c1a0e; border:1.5px solid #f0c04044; cursor:pointer; color:#f0c040!important; -webkit-text-fill-color:#f0c040!important; transition:all .12s; }
-.cell-avail:hover { border-color:#f0c040; background:#22200a; }
-.cell-avail.top { border-color:#4ade80; background:#182810; color:#4ade80!important; -webkit-text-fill-color:#4ade80!important; }
+/* preview — current player, after roll, not yet assigned */
+/* green: best available score */
+.cell-preview-green {
+background:#1a3010; border:1.5px solid #4ade80; cursor:pointer;
+color:#4ade80!important; -webkit-text-fill-color:#4ade80!important;
+}
+.cell-preview-green:hover { background:#22401a; border-color:#6aee9a; }
+/* yellow: decent / non-zero score */
+.cell-preview-yellow {
+background:#1e1c0a; border:1.5px solid #f0c040; cursor:pointer;
+color:#f0c040!important; -webkit-text-fill-color:#f0c040!important;
+}
+.cell-preview-yellow:hover { background:#282408; border-color:#f8d060; }
+/* red: would score zero */
+.cell-preview-red {
+background:#2a1212; border:1.5px solid #f87171; cursor:pointer;
+color:#f87171!important; -webkit-text-fill-color:#f87171!important;
+opacity:.75;
+}
+.cell-preview-red:hover { opacity:1; }
 
 /* empty */
 .cell-empty { background:#111114; border:1.5px solid #2a2a32; color:#28282e!important; -webkit-text-fill-color:#28282e!important; }
@@ -672,8 +688,12 @@ function refreshAllDice(animate){
   for(let i=0;i<5;i++) refreshDie(i, animate);
 }
 
-/* redraw on resize */
-window.addEventListener('resize',()=>refreshAllDice());
+/* redraw on resize/orientation — double rAF ensures layout is settled */
+function onResize(){
+  requestAnimationFrame(()=>requestAnimationFrame(()=>refreshAllDice()));
+}
+window.addEventListener('resize', onResize);
+window.addEventListener('orientationchange', ()=>setTimeout(onResize, 150));
 
 /* ══════════════════════════════════════
    ROLL
@@ -776,7 +796,7 @@ function renderSuggestions(){
   let html='<div class="sug-title">Assegna punteggio</div><div class="sug-list">';
   opts.forEach(({cat,pts})=>{
     const isBest=pts===best&&pts>0;
-    html+=`<button class="sug-btn${isBest?' best':''}${pts===0?' zero-s':''}" onclick="assignScore('${cat.id}',${pts})">
+    html+=`<button class="sug-btn${isBest?' best':''}${pts===0?' zero-s':''}" onclick="assignScore('${cat.id}')">
       <span class="sug-name">${cat.label}</span>
       ${isBest?'<span class="sug-badge">top</span>':''}
       <span class="sug-pts">${pts}</span>
@@ -786,21 +806,24 @@ function renderSuggestions(){
   area.innerHTML=html;
 }
 
-function assignScore(catId, pts){
+function assignScore(catId){
   if(!hasRolled||gameOver) return;
   const cp=players[curIdx];
-  if(scores[cp.name][catId]!==null) return;
+  if(scores[cp.name][catId]!==null) return; // already scored, ignore
   const cat=ALL.find(c=>c.id===catId);
+  const pts=calcScore(catId); // always from current dice
 
   if(cat.type==='yahtzee'){
-    openYahtzeePopup(cp, true);
+    openYahtzeePopup(cp, true, pts>0);
     return;
   }
   if(cat.type==='toggle'){
+    // rigid: valid combo → fixed value; invalid → 0. No manual override.
     scores[cp.name][catId]=pts>0?cat.fixed:0;
   } else {
     scores[cp.name][catId]=pts;
   }
+  refreshCell(cp,cat);
   afterAssign();
 }
 
@@ -919,77 +942,92 @@ function buildCell(cat,p){
 function renderCell(div,cat,p){
   const val=scores[p.name][cat.id];
   const isCur=!gameOver&&players[curIdx]&&players[curIdx].name===p.name;
-  div.innerHTML=''; div.className='cell'; div.onclick=null;
+  div.innerHTML=''; div.className='cell'; div.onclick=null; div.style.cursor='default';
 
-  if(cat.type==='toggle'){
-    // Already scored → show locked (but still tappable to fix mistakes)
-    if(val!==null){
+  /* ── Already scored — locked display ── */
+  if(val!==null){
+    if(cat.type==='toggle'){
       div.classList.add('cell-toggle');
-      renderToggle(div,cat,p);
-      // allow undo only
-      div.onclick=()=>{
-        scores[p.name][cat.id]=null;
-        renderToggle(div,cat,p); updateTotals();
-      };
+      if(val===cat.fixed){ div.classList.add('sf'); div.textContent=cat.fixed; }
+      else               { div.classList.add('sz'); div.textContent='0'; }
+    } else if(cat.type==='yahtzee'){
+      div.classList.add('cell-ytz'); renderYtz(div,p);
+    } else {
+      div.classList.add('cell-scored');
+      if(val===0) div.classList.add('z');
+      div.textContent=val;
+    }
+    return;
+  }
+
+  /* ── Current player, after roll — preview & clickable ── */
+  if(isCur && hasRolled){
+    const pts=calcScore(cat.id); // always from dice
+
+    if(cat.type==='yahtzee'){
+      // yahtzee preview colour based on dice
+      div.classList.add('cell-ytz');
+      const ytzValid=pts>0;
+      if(ytzValid){ div.classList.add('y1'); } // light up
+      renderYtz(div,p);
+      div.style.cursor='pointer';
+      div.onclick=()=>openYahtzeePopup(p, true, ytzValid);
       return;
     }
-    // Current player after roll → auto-determine from dice
-    if(isCur&&hasRolled){
-      const valid=calcScore(cat.id)>0; // e.g. full=25 only if valid
+
+    if(cat.type==='toggle'){
       div.classList.add('cell-toggle');
+      const valid=pts>0;
       if(valid){
-        // show as available/lit — tap to assign
-        div.classList.add('sf'); div.textContent=cat.fixed;
+        // combo achieved — green, clickable to confirm
+        div.classList.add('sf');
+        div.textContent=cat.fixed;
         div.style.cursor='pointer';
-        div.onclick=()=>{ scores[p.name][cat.id]=cat.fixed; renderCell(div,cat,p); afterAssign(); };
+        div.onclick=()=>{ scores[p.name][cat.id]=cat.fixed; refreshCell(p,cat); afterAssign(); };
       } else {
-        // not valid — show 0, tap to assign as 0 (sacrificed)
+        // combo not achieved — red, clickable to sacrifice as 0
         div.classList.add('sz');
         const v=document.createElement('span'); v.textContent='0';
-        const h=document.createElement('div'); h.className='tog-hint'; h.textContent='non fatto — tap×0';
+        const h=document.createElement('div'); h.className='tog-hint'; h.textContent='non fatto';
         div.appendChild(v); div.appendChild(h);
-        div.onclick=()=>{ scores[p.name][cat.id]=0; renderCell(div,cat,p); afterAssign(); };
+        div.style.cursor='pointer';
+        div.onclick=()=>{ scores[p.name][cat.id]=0; refreshCell(p,cat); afterAssign(); };
       }
       return;
     }
-    // Other player or before roll → neutral display
-    div.classList.add('cell-toggle');
-    renderToggle(div,cat,p);
-    return;
-  }
 
-  if(cat.type==='yahtzee'){
-    div.classList.add('cell-ytz');
-    renderYtz(div,p);
-    if(isCur&&hasRolled){
-      // auto-detect if yahtzee is valid
-      const valid=calcScore('yahtzee')>0;
-      div.onclick=()=>openYahtzeePopup(p, true, valid);
-    } else {
-      div.onclick=()=>openYahtzeePopup(p, false, false);
-    }
-    return;
-  }
+    /* free category — colour by score tier */
+    const best=getBestFree(p);
+    let tier;
+    if(pts>0 && pts===best) tier='cell-preview-green';
+    else if(pts>0)           tier='cell-preview-yellow';
+    else                     tier='cell-preview-red';
 
-  // free category
-  if(val!==null){
-    div.classList.add('cell-scored'); if(val===0) div.classList.add('z'); div.textContent=val;
-  } else if(isCur&&hasRolled){
-    const pts=calcScore(cat.id);
-    const best=getBest(p);
-    div.classList.add('cell-avail'); if(pts===best&&pts>0) div.classList.add('top');
+    div.classList.add(tier);
     div.textContent=pts;
-    div.onclick=()=>{ scores[p.name][cat.id]=pts; renderCell(div,cat,p); afterAssign(); };
+    div.onclick=()=>{ scores[p.name][cat.id]=pts; refreshCell(p,cat); afterAssign(); };
+    return;
+  }
+
+  /* ── Other player / before roll — neutral empty ── */
+  if(cat.type==='toggle'){
+    div.classList.add('cell-toggle');
+    const v=document.createElement('span'); v.textContent=cat.fixed;
+    const h=document.createElement('div'); h.className='tog-hint'; h.textContent='—';
+    div.appendChild(v); div.appendChild(h);
+  } else if(cat.type==='yahtzee'){
+    div.classList.add('cell-ytz'); renderYtz(div,p);
   } else {
     div.classList.add('cell-empty'); div.textContent='·';
   }
 }
+
+function getBestFree(p){
+  const avail=ALL.filter(c=>c.type==='free'&&scores[p.name][c.id]===null);
+  return avail.length ? Math.max(...avail.map(c=>calcScore(c.id))) : 0;
+}
 function refreshCell(p,cat){ const d=document.getElementById(`cell_${p.name}_${cat.id}`); if(d) renderCell(d,cat,p); }
 function refreshAllCells(){ players.forEach(p=>ALL.forEach(c=>refreshCell(p,c))); }
-function getBest(p){
-  const avail=ALL.filter(c=>scores[p.name][c.id]===null&&c.type==='free');
-  return avail.length?Math.max(...avail.map(c=>calcScore(c.id))):0;
-}
 
 /* ══════════════════════════════════════
    TOGGLE & YAHTZEE RENDER
