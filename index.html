@@ -64,48 +64,51 @@ body {
 #btn-open-dice:hover { transform:scale(1.08); }
 @media(min-width:701px) { #btn-open-dice { display:flex; } }
 
-/* ══ DICE OVERLAY ══ */
+/* ══ DICE WIDGET (desktop) ══ */
 #dice-overlay {
-  display:none; position:fixed; inset:0;
-  background:#000000cc;
-  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
-  z-index:200; align-items:center; justify-content:center;
+  display: none;
+  position: fixed;
+  bottom: clamp(16px, 2vw, 32px);
+  right: clamp(16px, 2vw, 32px);
+  z-index: 200;
+  width: clamp(280px, 28vw, 420px);
+  background: #111114;
+  border: 1px solid #2a2a32;
+  border-radius: 14px;
+  box-shadow: 0 8px 40px #00000099;
+  animation: widgetIn .18s cubic-bezier(.2,.8,.4,1);
 }
-#dice-overlay.open { display:flex; animation:fadeIn .2s ease; }
-@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+#dice-overlay.open { display: block; }
+@keyframes widgetIn { from{opacity:0;transform:translateY(12px) scale(.97)} to{opacity:1;transform:none} }
 @media(max-width:700px) { #dice-overlay { display:none!important; } }
 
 .dice-panel {
-  background:#111114; border:1px solid #2a2a32;
-  border-radius:clamp(10px,1.5vw,20px);
-  padding:clamp(20px,2.5vw,40px) clamp(24px,3.5vw,52px);
-  width:min(780px,90vw);
-  display:flex; flex-direction:column; gap:clamp(14px,2vw,26px);
-  animation:slideUp .22s cubic-bezier(.2,.8,.4,1);
+  padding: clamp(14px, 1.6vw, 22px) clamp(16px, 1.8vw, 24px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 1.2vw, 16px);
 }
-@keyframes slideUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:none} }
 
 .dp-top { display:flex; align-items:flex-start; justify-content:space-between; }
-.dp-turn-lbl { font-size:clamp(9px,.9vw,11px); letter-spacing:.2em; text-transform:uppercase; color:#5a5a66; }
-.dp-turn-name { font-family:'Bebas Neue',sans-serif; font-size:clamp(28px,3.8vw,52px); letter-spacing:2px; line-height:1.1; }
-.dp-pips { display:flex; gap:5px; margin-top:5px; }
-.rp { width:clamp(8px,.9vw,13px); height:clamp(8px,.9vw,13px); border-radius:50%; background:#2a2a32; transition:background .2s; }
+.dp-turn-lbl { font-size: clamp(8px,.7vw,10px); letter-spacing:.2em; text-transform:uppercase; color:#5a5a66; }
+.dp-turn-name { font-family:'Bebas Neue',sans-serif; font-size:clamp(22px,2.2vw,34px); letter-spacing:2px; line-height:1.1; }
+.dp-pips { display:flex; gap:4px; margin-top:4px; }
+.rp { width:clamp(7px,.7vw,10px); height:clamp(7px,.7vw,10px); border-radius:50%; background:#2a2a32; transition:background .2s; }
 .rp.used { background:#f0c040; }
-.dp-close { background:none; border:1px solid #2a2a32; color:#5a5a66; -webkit-text-fill-color:#5a5a66; font-family:'Inconsolata',monospace; font-size:clamp(10px,.9vw,12px); letter-spacing:.1em; text-transform:uppercase; padding:clamp(5px,.5vw,8px) clamp(10px,1vw,16px); cursor:pointer; border-radius:4px; transition:all .12s; }
+.dp-close { background:none; border:1px solid #2a2a32; color:#5a5a66; -webkit-text-fill-color:#5a5a66; font-family:'Inconsolata',monospace; font-size:10px; letter-spacing:.1em; text-transform:uppercase; padding:4px 9px; cursor:pointer; border-radius:4px; transition:all .12s; flex-shrink:0; }
 .dp-close:hover { border-color:#f87171; color:#f87171; -webkit-text-fill-color:#f87171; }
 
 /* ══ DICE ROW ══ */
 .dice-row {
   display:flex;
-  gap:clamp(10px,2vw,28px);
+  gap:clamp(6px,1vw,12px);
   justify-content:center;
   align-items:center;
 }
 
-/* Each die is an SVG wrapped in a clickable div */
 .die {
-  width:clamp(64px,12vw,136px);
-  height:clamp(64px,12vw,136px);
+  width:clamp(42px,4.8vw,68px);
+  height:clamp(42px,4.8vw,68px);
   flex-shrink:0;
   cursor:pointer;
   user-select:none;
@@ -115,10 +118,7 @@ body {
   position:relative;
 }
 .die:active:not(.locked) { transform:scale(.9); }
-.die.locked {
-  /* held: green glow */
-  filter:drop-shadow(0 0 clamp(4px,.8vw,10px) #4ade8099);
-}
+.die.locked { filter:drop-shadow(0 0 clamp(3px,.5vw,6px) #4ade8099); }
 .die.cant-hold { cursor:default; opacity:.38; pointer-events:none; }
 .die svg { width:100%; height:100%; display:block; border-radius:18%; }
 
@@ -146,19 +146,33 @@ body {
 
 /* ══ ROLL BUTTON ══ */
 .btn-roll {
-  width:100%; height:clamp(48px,6vh,68px);
+  width:100%; height:clamp(40px,4.5vh,52px);
   background:#f0c040; border:none; color:#000!important; -webkit-text-fill-color:#000!important;
-  font-family:'Bebas Neue',sans-serif; font-size:clamp(18px,2.2vw,28px); letter-spacing:2px;
-  cursor:pointer; border-radius:8px; transition:opacity .12s;
+  font-family:'Bebas Neue',sans-serif; font-size:clamp(16px,1.6vw,22px); letter-spacing:2px;
+  cursor:pointer; border-radius:6px; transition:opacity .12s;
 }
 .btn-roll:hover { opacity:.88; }
 .btn-roll:disabled { opacity:.22; cursor:not-allowed; background:#1e1e24; color:#5a5a66!important; -webkit-text-fill-color:#5a5a66!important; }
-.roll-hint-txt { font-size:clamp(9px,.9vw,11px); color:#3a3a46; text-align:center; letter-spacing:.05em; }
+.btn-undo {
+  width:100%;
+  height:32px;
+  background:none;
+  border:1px solid #2a2a32;
+  color:#5a5a66!important; -webkit-text-fill-color:#5a5a66!important;
+  font-family:'Inconsolata',monospace; font-size:11px; letter-spacing:.08em;
+  cursor:pointer; border-radius:4px; transition:all .12s;
+}
+.btn-undo:hover { border-color:#f0c040; color:#f0c040!important; -webkit-text-fill-color:#f0c040!important; }
+.mob-undo-btn {
+  width:auto; height:44px; padding:0 10px;
+  font-size:16px; letter-spacing:0; flex-shrink:0;
+}
+.roll-hint-txt { font-size:9px; color:#3a3a46; text-align:center; letter-spacing:.05em; }
 
 /* ══ SUGGESTIONS ══ */
-.dp-sug-title { font-size:clamp(9px,.9vw,11px); letter-spacing:.18em; text-transform:uppercase; color:#5a5a66; margin-bottom:6px; }
-.dp-sug-list { display:flex; flex-direction:column; gap:4px; max-height:clamp(100px,18vh,200px); overflow-y:auto; }
-.sug-btn { display:flex; align-items:center; justify-content:space-between; border-radius:4px; padding:clamp(5px,.6vw,9px) clamp(8px,.9vw,12px); cursor:pointer; width:100%; font-family:'Inconsolata',monospace; font-size:clamp(11px,1vw,13px); border:1.5px solid transparent; transition:opacity .12s; text-align:left; }
+.dp-sug-title { font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:#5a5a66; margin-bottom:5px; }
+.dp-sug-list { display:flex; flex-direction:column; gap:3px; max-height:clamp(90px,12vh,160px); overflow-y:auto; }
+.sug-btn { display:flex; align-items:center; justify-content:space-between; border-radius:4px; padding:5px 8px; cursor:pointer; width:100%; font-family:'Inconsolata',monospace; font-size:11px; border:1.5px solid transparent; transition:opacity .12s; text-align:left; }
 .sug-btn:hover { opacity:.78; }
 .sug-btn.sg { background:#1a3010; border-color:#4ade8066; color:#a0e890!important; -webkit-text-fill-color:#a0e890!important; }
 .sug-btn.sg .sug-pts { color:#4ade80!important; -webkit-text-fill-color:#4ade80!important; }
@@ -167,8 +181,8 @@ body {
 .sug-btn.sr { background:#2a1212; border-color:#f8717155; color:#e09090!important; -webkit-text-fill-color:#e09090!important; opacity:.7; }
 .sug-btn.sr .sug-pts { color:#f87171!important; -webkit-text-fill-color:#f87171!important; }
 .sug-name { flex:1; }
-.sug-pts { font-family:'Bebas Neue',sans-serif; font-size:clamp(18px,1.9vw,26px); }
-.sug-empty { font-size:11px; color:#4a4a56; text-align:center; padding:12px 0; }
+.sug-pts { font-family:'Bebas Neue',sans-serif; font-size:18px; }
+.sug-empty { font-size:11px; color:#4a4a56; text-align:center; padding:10px 0; }
 
 /* ══ BOTTOM BAR (mobile) ══ */
 #dice-bar { display:none; position:fixed; bottom:0; left:0; right:0; background:#111114; border-top:1px solid #2a2a32; padding:10px 12px max(14px,env(safe-area-inset-bottom)); z-index:100; }
@@ -321,6 +335,7 @@ th,td { padding:0; overflow:hidden; }
       </div>
       <div class="dice-row" id="ov-dice"></div>
       <button class="btn-roll" id="ov-roll" onclick="doRoll()">🎲 LANCIA I DADI</button>
+      <button class="btn-undo" id="ov-undo" onclick="undoRoll()" style="display:none">↩ Annulla ultimo tiro</button>
       <div class="roll-hint-txt">Clicca un dado per bloccarlo</div>
       <div id="ov-sug"><div class="sug-empty">Lancia i dadi per vedere i punteggi</div></div>
     </div>
@@ -337,6 +352,7 @@ th,td { padding:0; overflow:hidden; }
         </div>
       </div>
       <button class="bar-roll-btn" id="mob-roll" onclick="doRoll()">🎲 LANCIA</button>
+      <button class="btn-undo mob-undo-btn" id="mob-undo" onclick="undoRoll()" style="display:none">↩</button>
     </div>
     <div class="mob-dice-row" id="mob-dice"></div>
   </div>
@@ -416,6 +432,7 @@ let scores={}, yahtzeeCount={};
 let dice=[1,1,1,1,1], held=[false,false,false,false,false];
 let rollsLeft=3, hasRolled=false, curIdx=0, gameOver=false;
 let popupCtx=null, rolling=false;
+let prevRoll=null; // snapshot before last roll for undo
 
 /* ══ SETUP ══ */
 function buildSetup(){
@@ -481,9 +498,6 @@ function newGame(){
 /* ══ OVERLAY ══ */
 function openOverlay(){ document.getElementById('dice-overlay').classList.add('open'); }
 function closeOverlay(){ document.getElementById('dice-overlay').classList.remove('open'); }
-document.getElementById('dice-overlay').addEventListener('click', e=>{
-  if(e.target===document.getElementById('dice-overlay')) closeOverlay();
-});
 document.addEventListener('keydown', e=>{ if(e.key==='Escape'){closeOverlay();finishPopup(false);} });
 
 /* ══ DIE ELEMENTS ══ */
@@ -530,11 +544,15 @@ function updateAllDice() {
 */
 function resetTurn(){
   dice=[1,1,1,1,1]; held=[false,false,false,false,false];
-  rollsLeft=3; hasRolled=false;
+  rollsLeft=3; hasRolled=false; prevRoll=null;
 }
 
 function doRoll(){
   if(rollsLeft<=0||gameOver||rolling) return;
+
+  // Save state before this roll so we can undo it
+  prevRoll = { dice:[...dice], held:[...held], rollsLeft:rollsLeft+1, hasRolled };
+
   hasRolled=true; rolling=true;
 
   const toRoll=[];
@@ -601,6 +619,10 @@ function updateRollBtns(){
                       rollsLeft===2 ? '🎲 RILANCIA  (2 rimasti)' :
                       rollsLeft===1 ? '🎲 RILANCIA  (ultimo)' : 'LANCI ESAURITI';
   });
+  ['ov-undo','mob-undo'].forEach(id=>{
+    const btn=document.getElementById(id); if(!btn) return;
+    btn.style.display = (prevRoll&&!gameOver) ? 'inline-block' : 'none';
+  });
 }
 function updatePips(){
   const used=3-rollsLeft;
@@ -609,6 +631,14 @@ function updatePips(){
       const el=document.getElementById(`${pfx}${i}`); if(el) el.className='rp'+(i<used?' used':'');
     }
   });
+}
+
+function undoRoll(){
+  if(!prevRoll||rolling||gameOver) return;
+  dice=[...prevRoll.dice]; held=[...prevRoll.held];
+  rollsLeft=prevRoll.rollsLeft; hasRolled=prevRoll.hasRolled;
+  prevRoll=null;
+  renderAllDice(); updateRollBtns(); updatePips(); refreshAllCells(); renderSuggestions();
 }
 
 /* ══ SCORE CALC ══ */
@@ -692,9 +722,13 @@ function afterAssign(){ updateTotals(); checkGameOver(); if(!gameOver) advanceTu
 
 /* ══ TURN ══ */
 function advanceTurn(){
+  // A player's scorecard is "done" when all non-yahtzee cats are scored AND yahtzee has been assigned
+  function isDone(p){
+    return ALL.every(c=>scores[p.name][c.id]!==null);
+  }
   let att=0;
   do{ curIdx=(curIdx+1)%players.length; att++; if(att>players.length)break; }
-  while(ALL.every(c=>scores[players[curIdx].name][c.id]!==null));
+  while(isDone(players[curIdx]));
   resetTurn(); renderAllDice(); updateRollBtns(); updatePips();
   updateTurnUI(); renderSuggestions(); refreshAllCells(); highlightActiveCol();
 }
